@@ -1,0 +1,98 @@
+import yfinance as yf
+
+class StockPortfolio:
+    def __init__(self):
+        self.stocks = {}
+
+    def add_stock(self, symbol, quantity):
+        try:
+            ticker = yf.Ticker(symbol)
+            current_data = ticker.history(period='1d')
+            
+            if current_data.empty:
+                print(f"Error: No data available for {symbol}.")
+                return
+            
+            current_price = current_data['Close'].iloc[-1]
+            if symbol in self.stocks:
+                # Update the average price and quantity
+                total_cost = self.stocks[symbol]['quantity'] * self.stocks[symbol]['average_price']
+                total_cost += quantity * current_price
+                total_quantity = self.stocks[symbol]['quantity'] + quantity
+                self.stocks[symbol]['average_price'] = total_cost / total_quantity
+                self.stocks[symbol]['quantity'] = total_quantity
+            else:
+                # Add a new stock
+                self.stocks[symbol] = {'quantity': quantity, 'average_price': current_price}
+            
+            print(f"Added {quantity} shares of {symbol} at ${current_price:.2f} each.")
+        except Exception as e:
+            print(f"Error adding stock {symbol}: {e}")
+
+    def remove_stock(self, symbol, quantity):
+        if symbol in self.stocks:
+            if quantity >= self.stocks[symbol]['quantity']:
+                del self.stocks[symbol]
+                print(f"Removed all shares of {symbol}.")
+            else:
+                self.stocks[symbol]['quantity'] -= quantity
+                print(f"Removed {quantity} shares of {symbol}.")
+        else:
+            print(f"Error: Stock {symbol} not found in the portfolio.")
+
+    def update_portfolio(self):
+        for symbol in self.stocks:
+            try:
+                ticker = yf.Ticker(symbol)
+                current_data = ticker.history(period='1d')
+                
+                if current_data.empty:
+                    print(f"Error: No data available for {symbol}.")
+                    continue
+                
+                current_price = current_data['Close'].iloc[-1]
+                self.stocks[symbol]['average_price'] = current_price
+                print(f"Updated {symbol} to current price: ${current_price:.2f}.")
+            except Exception as e:
+                print(f"Error updating stock {symbol}: {e}")
+
+    def display_portfolio(self):
+        print("\nStock Portfolio:")
+        if not self.stocks:
+            print("Portfolio is empty.")
+        else:
+            for symbol, data in self.stocks.items():
+                print(f"{symbol}: Quantity - {data['quantity']}, Average Price - ${data['average_price']:.2f}")
+
+def main():
+    portfolio = StockPortfolio()
+
+    while True:
+        print("\n1. Add Stock\n2. Remove Stock\n3. Display Portfolio\n4. Quit")
+        choice = input("Enter your choice (1-4): ").strip()
+
+        if choice == '1':
+            symbol = input("Enter stock symbol: ").upper().strip()
+            try:
+                quantity = int(input("Enter quantity: ").strip())
+                portfolio.add_stock(symbol, quantity)
+            except ValueError:
+                print("Error: Quantity must be an integer.")
+        elif choice == '2':
+            symbol = input("Enter stock symbol: ").upper().strip()
+            try:
+                quantity = int(input("Enter quantity to remove: ").strip())
+                portfolio.remove_stock(symbol, quantity)
+            except ValueError:
+                print("Error: Quantity must be an integer.")
+        elif choice == '3':
+            portfolio.update_portfolio()
+            portfolio.display_portfolio()
+        elif choice == '4':
+            print("Exiting the program. Goodbye!")
+            break
+        else:
+            print("Invalid choice. Please enter a number between 1 and 4.")
+
+if __name__ == "__main__":
+    main()
